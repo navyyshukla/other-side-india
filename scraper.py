@@ -4,7 +4,6 @@ from supabase import create_client
 from GoogleNews import GoogleNews
 from dotenv import load_dotenv
 
-# 1. Load environment variables
 env_path = Path('.') / 'my-website' / '.env.local'
 load_dotenv(dotenv_path=env_path)
 
@@ -13,12 +12,10 @@ key = os.environ.get("NEXT_PUBLIC_SUPABASE_KEY")
 
 if not url or not key:
     if not os.environ.get("NEXT_PUBLIC_SUPABASE_URL"):
-        print(f"❌ Error: Could not find API keys.")
         exit()
 
 supabase = create_client(url, key)
 
-# 2. Define Keywords
 KEYWORDS = [
     "India corruption scam revealed",
     "Women safety issues India recent",
@@ -31,49 +28,68 @@ KEYWORDS = [
     "Cyber crime fraud India recent"
 ]
 
+def maintain_limit():
+    """
+    Keeps only the latest 50 stories. Deletes the rest.
+    """
+    try:
+        # Fetch IDs sorted by newest
+        response = supabase.table("news").select("id").order("created_at", desc=True).execute()
+        all_rows = response.data
+        
+        if len(all_rows) > 50:
+            ids_to_delete = [row['id'] for row in all_rows[50:]]
+            
+            print(f"🧹 Maintenance: Deleting {len(ids_to_delete)} old stories...")
+            supabase.table("news").delete().in_("id", ids_to_delete).execute()
+            print("✨ Cleanup complete. Database capped at 50.")
+            
+    except Exception as e:
+        print(f"⚠️ Maintenance Error: {e}")
+
 def fetch_harsh_news():
-    # CRITICAL UPDATE: period='1d' (Last 24 hours only)
     googlenews = GoogleNews(lang='en', region='IN', period='1d')
     all_articles = []
 
-    print("🔍 Starting Harsh Realities Search (Last 24 Hours)...")
+    print("🔍 Starting Harsh Realities Search...")
 
     for keyword in KEYWORDS:
-        print(f"   Searching for: {keyword}")
+        print(f"   Searching: {keyword}")
         googlenews.clear()
         googlenews.search(keyword)
         result = googlenews.result()
-        
         for article in result:
             if article['title'] and article['link']:
                 all_articles.append(article)
 
-    # CRITICAL STEP: Reverse list for correct sorting order on website
     all_articles.reverse()
 
-    print(f"✅ Found {len(all_articles)} stories. Uploading...")
+    print(f"   Found {len(all_articles)} stories. Uploading...")
 
     count = 0
     for news in all_articles:
         try:
-            # Note: Ensure your table name is correct ('news' or 'harsh_news')
-            existing = supabase.table("news").select("link").eq("link", news['link']).execute()
+            final_link = news['link']
+            existing = supabase.table("news").select("link").eq("link", final_link).execute()
             
             if not existing.data:
                 data = {
                     "title": news['title'],
-                    "link": news['link'],
+                    "link": final_link,
                     "source": news['media'],
                     "published_at": news['date']
                 }
                 supabase.table("news").insert(data).execute()
                 count += 1
-                print(f"   -> Added: {news['title'][:30]}...")
+                print(f"   ✅ Added: {news['title'][:30]}...")
                 
         except Exception as e:
-            print(f"   ⚠️ Error inserting article: {e}")
+            print(f"   ⚠️ Error: {e}")
 
-    print(f"🎉 Success! {count} new harsh stories added.")
+    print(f"🎉 Success! {count} stories added.")
+    
+    # RUN CLEANUP
+    maintain_limit()
 
 if __name__ == "__main__":
     fetch_harsh_news()
