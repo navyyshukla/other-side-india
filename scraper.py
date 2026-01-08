@@ -1,69 +1,79 @@
-import feedparser
-import dateparser
 import os
-from supabase import create_client, Client
+from pathlib import Path
+from supabase import create_client
+from GoogleNews import GoogleNews
 from dotenv import load_dotenv
 
-load_dotenv()
-url: str = os.environ.get("SUPABASE_URL")
-key: str = os.environ.get("SUPABASE_KEY")
-supabase: Client = create_client(url, key)
+# 1. Load environment variables
+env_path = Path('.') / 'my-website' / '.env.local'
+load_dotenv(dotenv_path=env_path)
 
-rss_urls = [
-    "https://news.google.com/rss/search?q=India&hl=en-IN&gl=IN&ceid=IN:en",
-    "https://www.thehindu.com/news/national/feeder/default.rss",
-    "https://timesofindia.indiatimes.com/rssfeedstopstories.cms"
+url = os.environ.get("NEXT_PUBLIC_SUPABASE_URL")
+key = os.environ.get("NEXT_PUBLIC_SUPABASE_KEY")
+
+if not url or not key:
+    if not os.environ.get("NEXT_PUBLIC_SUPABASE_URL"):
+        print(f"❌ Error: Could not find API keys.")
+        exit()
+
+supabase = create_client(url, key)
+
+# 2. Define Keywords
+KEYWORDS = [
+    "India corruption scam revealed",
+    "Women safety issues India recent",
+    "Caste discrimination incident India",
+    "Legal loophole India case study",
+    "Human trafficking India news",
+    "Dowry death case India recent",
+    "Sanitation worker death India",
+    "Custodial death India report",
+    "Cyber crime fraud India recent"
 ]
 
-keywords = [
-    "rape", "dowry", "harassment", "molestation", "bribe", "bribery", 
-    "corruption", "scam", "dalit", "untouchable", "caste", "suicide", 
-    "honor killing", "trafficking", "acid attack", "domestic violence",
-    "alimony", "false accusation"
-]
+def fetch_harsh_news():
+    # CRITICAL UPDATE: period='1d' (Last 24 hours only)
+    googlenews = GoogleNews(lang='en', region='IN', period='1d')
+    all_articles = []
 
-# NEW: Helper function to clean source names
-def get_source_name(feed_url):
-    if "google" in feed_url:
-        return "Google News"
-    elif "thehindu" in feed_url:
-        return "The Hindu"
-    elif "timesofindia" in feed_url:
-        return "Times of India"
-    return "News Source"
+    print("🔍 Starting Harsh Realities Search (Last 24 Hours)...")
 
-def fetch_and_save_news():
-    print(f"--- STARTING SCRAPE ---")
-    
-    for url in rss_urls:
-        print(f"Scanning: {url}...")
-        feed = feedparser.parse(url)
-        source_name = get_source_name(url) # Use clean name
+    for keyword in KEYWORDS:
+        print(f"   Searching for: {keyword}")
+        googlenews.clear()
+        googlenews.search(keyword)
+        result = googlenews.result()
         
-        for entry in feed.entries:
-            title = entry.title.lower()
-            summary = entry.get('summary', '').lower()
-            
-            if any(word in title for word in keywords) or any(word in summary for word in keywords):
-                published_date = "Unknown"
-                if hasattr(entry, 'published'):
-                    dt = dateparser.parse(entry.published)
-                    if dt:
-                        published_date = dt.strftime("%Y-%m-%d %H:%M")
+        for article in result:
+            if article['title'] and article['link']:
+                all_articles.append(article)
 
-                article_data = {
-                    "title": entry.title,
-                    "link": entry.link,
-                    "date": published_date,
-                    "source": source_name # Save the clean name
+    # CRITICAL STEP: Reverse list for correct sorting order on website
+    all_articles.reverse()
+
+    print(f"✅ Found {len(all_articles)} stories. Uploading...")
+
+    count = 0
+    for news in all_articles:
+        try:
+            # Note: Ensure your table name is correct ('news' or 'harsh_news')
+            existing = supabase.table("news").select("link").eq("link", news['link']).execute()
+            
+            if not existing.data:
+                data = {
+                    "title": news['title'],
+                    "link": news['link'],
+                    "source": news['media'],
+                    "published_at": news['date']
                 }
+                supabase.table("news").insert(data).execute()
+                count += 1
+                print(f"   -> Added: {news['title'][:30]}...")
                 
-                try:
-                    data = supabase.table("news").upsert(article_data, on_conflict="link").execute()
-                    print(f"✅ Saved: {entry.title[:30]}...")
-                except Exception as e:
-                    print(f"❌ Error saving {entry.title[:30]}: {e}")
+        except Exception as e:
+            print(f"   ⚠️ Error inserting article: {e}")
+
+    print(f"🎉 Success! {count} new harsh stories added.")
 
 if __name__ == "__main__":
-    fetch_and_save_news()
-    print("\n--- DONE. CHECK YOUR SUPABASE DASHBOARD ---")
+    fetch_harsh_news()

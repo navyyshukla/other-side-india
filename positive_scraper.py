@@ -2,26 +2,25 @@ import os
 from pathlib import Path
 from supabase import create_client
 from GoogleNews import GoogleNews
-from datetime import datetime
 from dotenv import load_dotenv
 
-# 1. Load environment variables from the 'my-website' folder
-# This fixes the "supabase_url is required" error by pointing to the right file
+# 1. Load environment variables
 env_path = Path('.') / 'my-website' / '.env.local'
 load_dotenv(dotenv_path=env_path)
 
 url = os.environ.get("NEXT_PUBLIC_SUPABASE_URL")
 key = os.environ.get("NEXT_PUBLIC_SUPABASE_KEY")
 
-# Safety Check: Stop if keys are missing
+# Safety Check
 if not url or not key:
-    print(f"❌ Error: Could not find API keys at: {env_path.absolute()}")
-    print("   Make sure you have a '.env.local' file inside the 'my-website' folder.")
-    exit()
+    # If .env isn't found, check if running in GitHub Actions (secrets are env vars)
+    if not os.environ.get("NEXT_PUBLIC_SUPABASE_URL"):
+        print(f"❌ Error: Could not find API keys.")
+        exit()
 
 supabase = create_client(url, key)
 
-# 2. Define the "Positive India" Keywords
+# 2. Define Keywords
 POSITIVE_KEYWORDS = [
     "Interfaith harmony India",
     "Hindu Muslim unity stories",
@@ -37,10 +36,11 @@ POSITIVE_KEYWORDS = [
 ]
 
 def fetch_positive_news():
-    googlenews = GoogleNews(lang='en', region='IN')
+    # CRITICAL UPDATE: period='1d' (Last 24 hours only)
+    googlenews = GoogleNews(lang='en', region='IN', period='1d')
     all_articles = []
 
-    print("🔍 Starting Positive News Search...")
+    print("🔍 Starting Positive News Search (Last 24 Hours)...")
 
     for keyword in POSITIVE_KEYWORDS:
         print(f"   Searching for: {keyword}")
@@ -48,18 +48,20 @@ def fetch_positive_news():
         googlenews.search(keyword)
         result = googlenews.result()
         
-        # Add valid articles to our list
         for article in result:
             if article['title'] and article['link']:
                 all_articles.append(article)
 
-    print(f"✅ Found {len(all_articles)} positive stories. Uploading to Supabase...")
+    # CRITICAL STEP: Reverse the list so the Newest article is inserted LAST.
+    # This ensures it gets the latest timestamp and appears at the top of your site.
+    all_articles.reverse()
 
-    # 3. Upload to the 'positive_news' table
+    print(f"✅ Found {len(all_articles)} stories. Uploading...")
+
     count = 0
     for news in all_articles:
-        # Check if news already exists to avoid duplicates
         try:
+            # Check for duplicates
             existing = supabase.table("positive_news").select("link").eq("link", news['link']).execute()
             
             if not existing.data:
@@ -67,7 +69,7 @@ def fetch_positive_news():
                     "title": news['title'],
                     "link": news['link'],
                     "source": news['media'],
-                    "published_at": news['date']
+                    "published_at": news['date'] # Stores "5 mins ago", "1 hour ago" etc.
                 }
                 supabase.table("positive_news").insert(data).execute()
                 count += 1
@@ -76,7 +78,7 @@ def fetch_positive_news():
         except Exception as e:
             print(f"   ⚠️ Error inserting article: {e}")
 
-    print(f"🎉 Success! {count} new positive stories added to the database.")
+    print(f"🎉 Success! {count} new positive stories added.")
 
 if __name__ == "__main__":
     fetch_positive_news()
