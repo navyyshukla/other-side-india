@@ -1,6 +1,6 @@
-# Other Side India
+# Other Side of India
 
-**Other Side India** is a web application designed to [insert brief description here, e.g., aggregate and display under-reported news stories/provide a different perspective on current events].
+**Other Side of India** is a web application designed to [insert brief description here, e.g., aggregate and display under-reported news stories/provide a different perspective on current events].
 
 ## 🚀 Features
 * [Feature 1: e.g., Real-time news aggregation]
