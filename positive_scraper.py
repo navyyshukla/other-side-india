@@ -1,7 +1,8 @@
 import os
+import feedparser
+import urllib.parse
 from pathlib import Path
 from supabase import create_client
-from GoogleNews import GoogleNews
 from dotenv import load_dotenv
 
 # 1. Setup Supabase
@@ -32,70 +33,57 @@ POSITIVE_KEYWORDS = [
 ]
 
 def maintain_limit():
-    """
-    Keeps only the latest 50 stories. Deletes the rest.
-    """
     try:
-        # 1. Fetch ALL IDs sorted by newest first
         response = supabase.table("positive_news").select("id").order("created_at", desc=True).execute()
         all_rows = response.data
-        
-        # 2. If we have more than 50, find the ones to delete
         if len(all_rows) > 50:
-            ids_to_keep = [row['id'] for row in all_rows[:50]]
             ids_to_delete = [row['id'] for row in all_rows[50:]]
-            
-            print(f"🧹 Maintenance: Deleting {len(ids_to_delete)} old stories to keep limit at 50...")
-            
-            # 3. Delete the old ones
+            print(f"🧹 Maintenance: Deleting {len(ids_to_delete)} old stories...")
             supabase.table("positive_news").delete().in_("id", ids_to_delete).execute()
-            print("✨ Cleanup complete. Database capped at 50.")
-            
     except Exception as e:
         print(f"⚠️ Maintenance Error: {e}")
 
 def fetch_positive_news():
-    googlenews = GoogleNews(lang='en', region='IN', period='1d')
-    all_articles = []
-
-    print("🔍 Starting Positive News Search...")
-
-    for keyword in POSITIVE_KEYWORDS:
-        print(f"   Searching: {keyword}")
-        googlenews.clear()
-        googlenews.search(keyword)
-        result = googlenews.result()
-        for article in result:
-            if article['title'] and article['link']:
-                all_articles.append(article)
-
-    all_articles.reverse()
-
-    print(f"   Found {len(all_articles)} stories. Uploading...")
-
-    count = 0
-    for news in all_articles:
-        try:
-            final_link = news['link']
-            existing = supabase.table("positive_news").select("link").eq("link", final_link).execute()
-            
-            if not existing.data:
-                data = {
-                    "title": news['title'],
-                    "link": final_link,
-                    "source": news['media'],
-                    "published_at": news['date']
-                }
-                supabase.table("positive_news").insert(data).execute()
-                count += 1
-                print(f"   ✅ Added: {news['title'][:30]}...")
-                
-        except Exception as e:
-            print(f"   ⚠️ Error: {e}")
-
-    print(f"🎉 Success! {count} stories added.")
+    print("🔍 Starting Positive News Search (via Official RSS)...")
     
-    # RUN CLEANUP
+    count = 0
+    
+    for keyword in POSITIVE_KEYWORDS:
+        # Construct the Official Google News RSS URL
+        # gl=IN (India), ceid=IN:en (India English)
+        encoded_query = urllib.parse.quote(keyword)
+        rss_url = f"https://news.google.com/rss/search?q={encoded_query}&hl=en-IN&gl=IN&ceid=IN:en"
+        
+        # Parse the feed
+        feed = feedparser.parse(rss_url)
+        
+        # Process entries (Default is newest first)
+        for entry in feed.entries[:5]: # Take top 5 per keyword to avoid spam
+            try:
+                # RSS links are reliable. We save them directly.
+                final_link = entry.link
+                title = entry.title
+                published = entry.published
+                source = entry.source.title if 'source' in entry else "Google News"
+
+                # Check duplicates
+                existing = supabase.table("positive_news").select("link").eq("link", final_link).execute()
+                
+                if not existing.data:
+                    data = {
+                        "title": title,
+                        "link": final_link,
+                        "source": source,
+                        "published_at": published
+                    }
+                    supabase.table("positive_news").insert(data).execute()
+                    count += 1
+                    print(f"   ✅ Added: {title[:30]}...")
+
+            except Exception as e:
+                continue
+
+    print(f"🎉 Success! {count} positive stories added.")
     maintain_limit()
 
 if __name__ == "__main__":

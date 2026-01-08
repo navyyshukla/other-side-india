@@ -1,4 +1,4 @@
 supabase
-GoogleNews
+feedparser
 python-dotenv
 requests
