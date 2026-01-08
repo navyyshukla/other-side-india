@@ -1,0 +1,3 @@
+supabase
+GoogleNews
+python-dotenv
