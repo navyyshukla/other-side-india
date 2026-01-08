@@ -1,0 +1,37 @@
+name: Update News Every 3 Hours
+
+on:
+  schedule:
+    # Run every 3 hours (00:00, 03:00, 06:00, etc.)
+    - cron: '0 */3 * * *'
+  workflow_dispatch: # Allows you to run it manually button click
+
+jobs:
+  scrape-and-update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run Positive News Scraper
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_KEY }}
+        # We modify the command to look for .env or use secrets directly
+        run: python positive_scraper.py
+
+      - name: Run Harsh Realities Scraper
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_KEY }}
+        run: python scraper.py
