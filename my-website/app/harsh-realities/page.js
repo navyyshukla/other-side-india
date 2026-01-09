@@ -11,11 +11,11 @@ export const revalidate = 0;
 
 export default async function HarshRealities() {
   
-  // 2. Fetch latest 50 articles from the 'news' table
+// 2. Fetch latest 50 articles
   const { data: articles, error } = await supabase
     .from('news') 
     .select('*')
-    .order('created_at', { ascending: false })
+    .order('published_at', { ascending: false }) // <--- CHANGED THIS
     .limit(50);
 
   if (error) {
