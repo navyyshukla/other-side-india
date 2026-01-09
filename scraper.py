@@ -1,6 +1,7 @@
 import os
 import feedparser
 import urllib.parse
+from email.utils import parsedate_to_datetime # New Import
 from pathlib import Path
 from supabase import create_client
 from dotenv import load_dotenv
@@ -31,7 +32,8 @@ KEYWORDS = [
 
 def maintain_limit():
     try:
-        response = supabase.table("news").select("id").order("created_at", desc=True).execute()
+        # Sort by published_at now
+        response = supabase.table("news").select("id").order("published_at", desc=True).execute()
         all_rows = response.data
         if len(all_rows) > 50:
             ids_to_delete = [row['id'] for row in all_rows[50:]]
@@ -41,23 +43,24 @@ def maintain_limit():
         print(f"⚠️ Maintenance Error: {e}")
 
 def fetch_harsh_news():
-    print("🔍 Starting Harsh Realities Search (via Official RSS)...")
+    print("🔍 Starting Harsh Realities Search (Real-Time Sort)...")
     
     count = 0
     
     for keyword in KEYWORDS:
-        # Construct RSS URL
         encoded_query = urllib.parse.quote(keyword)
         rss_url = f"https://news.google.com/rss/search?q={encoded_query}&hl=en-IN&gl=IN&ceid=IN:en"
-        
         feed = feedparser.parse(rss_url)
         
         for entry in feed.entries[:5]: 
             try:
                 final_link = entry.link
                 title = entry.title
-                published = entry.published
                 source = entry.source.title if 'source' in entry else "News"
+                
+                # DATE FIX
+                published_dt = parsedate_to_datetime(entry.published)
+                published_iso = published_dt.isoformat()
 
                 existing = supabase.table("news").select("link").eq("link", final_link).execute()
                 
@@ -66,11 +69,11 @@ def fetch_harsh_news():
                         "title": title,
                         "link": final_link,
                         "source": source,
-                        "published_at": published
+                        "published_at": published_iso # Save ISO Date
                     }
                     supabase.table("news").insert(data).execute()
                     count += 1
-                    print(f"   ✅ Added: {title[:30]}...")
+                    print(f"   ✅ Added: {title[:30]}... ({published_iso})")
 
             except Exception as e:
                 continue
