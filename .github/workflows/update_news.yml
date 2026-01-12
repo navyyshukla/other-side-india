@@ -2,9 +2,8 @@ name: Update News Every 3 Hours
 
 on:
   schedule:
-    # Run every 3 hours (00:00, 03:00, 06:00, etc.)
-    - cron: '0 */3 * * *'
-  workflow_dispatch: # Allows you to run it manually button click
+    - cron: '0 */3 * * *' # Run every 3 hours
+  workflow_dispatch: # Allows manual button click
 
 jobs:
   scrape-and-update:
@@ -18,20 +17,27 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
+          cache: 'pip' # Enable caching to speed up future runs
 
-      - name: Install dependencies
+      - name: Install Lightweight AI Dependencies
         run: |
+          # 1. Upgrade pip
+          python -m pip install --upgrade pip
+          
+          # 2. Install CPU-only PyTorch (Much smaller than the standard version)
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          
+          # 3. Install Transformers (The AI Brain interface)
+          pip install transformers
+
+      - name: Install Project Dependencies
+        run: |
+          # 4. Install the rest from requirements.txt
           pip install -r requirements.txt
 
-      - name: Run Positive News Scraper
+      - name: Run AI News Scraper
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_KEY }}
-        # We modify the command to look for .env or use secrets directly
-        run: python positive_scraper.py
-
-      - name: Run Harsh Realities Scraper
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_KEY }}
-        run: python scraper.py
+          # No HuggingFace key needed anymore for local AI
+        run: python ai_scraper.py
