@@ -15,6 +15,7 @@ supabase_url = os.environ.get("NEXT_PUBLIC_SUPABASE_URL")
 supabase_key = os.environ.get("NEXT_PUBLIC_SUPABASE_KEY")
 
 if not supabase_url or not supabase_key:
+    # Check OS environ for GitHub Actions
     supabase_url = os.environ.get("NEXT_PUBLIC_SUPABASE_URL")
     supabase_key = os.environ.get("NEXT_PUBLIC_SUPABASE_KEY")
 
@@ -32,141 +33,176 @@ def analyze_sentiment(text):
     result = classifier(text)[0]
     label = result['label']
     score = result['score']
-    # Higher confidence required
-    if score < 0.85:
+    if score < 0.70: # Relaxed slightly to catch more news
         return "NEUTRAL", score
     return label, score
 
-def maintain_limit(table_name):
-    try:
-        response = supabase.table(table_name).select("id").order("published_at", desc=True).execute()
-        all_rows = response.data
-        if len(all_rows) > 50:
-            ids_to_delete = [row['id'] for row in all_rows[50:]]
-            supabase.table(table_name).delete().in_("id", ids_to_delete).execute()
-            print(f"   🧹 Cleaned {table_name}: Removed {len(ids_to_delete)} old stories.")
-    except Exception as e:
-        print(f"   ⚠️ Maintenance Error: {e}")
+def maintain_per_category_limit(table_name, category_list):
+    """
+    Ensures EACH category has at least 20 items. 
+    Only deletes items if a specific category has > 30 items.
+    """
+    print(f"   🧹 Maintenance: Checking {table_name}...")
+    
+    for cat in category_list:
+        try:
+            # Fetch all items for this specific category
+            response = supabase.table(table_name).select("id").eq("category", cat).order("published_at", desc=True).execute()
+            rows = response.data
+            
+            # If we have too many, delete the oldest ones for THIS category only
+            if len(rows) > 30:
+                ids_to_delete = [row['id'] for row in rows[30:]]
+                supabase.table(table_name).delete().in_("id", ids_to_delete).execute()
+                print(f"      - {cat}: Cleaned {len(ids_to_delete)} old stories (Kept newest 30).")
+            else:
+                print(f"      - {cat}: Healthy ({len(rows)} stories).")
+                
+        except Exception as e:
+            print(f"      ⚠️ Error cleaning {cat}: {e}")
 
 def fetch_and_classify_news():
-    print("🚀 Deep Scraper Starting... Scanning 10+ topics for HIGH IMPACT news...")
+    print("🚀 Backend Starting... Hunting for categorized India news...")
     
-    # We search specifically for these topics to get ~1000 candidate articles
-    search_topics = [
-        "India social issues", "India crime", "India human rights", "India tragedy",
-        "India environment crisis", "India scams", "India rescue", "India inspiring",
-        "India innovation social", "India rural success", "India heroism"
-    ]
+    # --- SEARCH CONFIGURATION (Expanded Queries) ---
     
-    # Store links we've seen to avoid duplicates across topics
+    positive_map = {
+        "AI & Innovation": [
+            "India AI startup", "India space ISRO launch", "India science breakthrough", "India patent granted",
+            "India student invention", "India medical tech", "India drone delivery", "India IIT innovation"
+        ],
+        "Altruism": [
+            "India stranger saves", "India police helps", "India donates organ", "India humanitarian award",
+            "India rescues animal", "India kindness viral", "India community kitchen", "India hero driver"
+        ],
+        "Good Governance": [
+            "India sanitation milestone", "India highway complete", "India digital india success", 
+            "India village electrified", "India scheme beneficiary", "India corruption crackdown success",
+            "India smart city award", "India railway upgrade"
+        ],
+        "Advocacy": [
+            "India high court justice", "India human rights win", "India tribal rights granted", 
+            "India environment protection", "India women safety initiative", "India child labour rescue"
+        ]
+    }
+
+    dark_map = {
+        "Dirty Politics": [
+            "India politician scam", "India MLA FIR", "India election bribe", "India leader hate speech",
+            "India political row", "India vote bank politics", "India party worker clash"
+        ],
+        "Impunity": [
+            "India accused acquitted lack evidence", "India police inaction", "India justice denied", 
+            "India powerful accused bail", "India witness hostile", "India case pending years"
+        ],
+        "Persecution": [
+            "India caste violence", "India dalit attack", "India religious intolerance", 
+            "India mob lynching", "India activist jailed", "India journalist arrested"
+        ],
+        "Corruption": [
+            "India officer bribe caught", "India raid cash seizure", "India tender scam", 
+            "India bank fraud fugitive", "India recruitment scam", "India money laundering ED"
+        ],
+        "Atrocity": [
+            "India gangrape case", "India custodial death", "India acid attack", "India honor killing", 
+            "India gruesome murder", "India child abuse ring", "India dowry death"
+        ]
+    }
+
     seen_links = set()
-    
     count_positive = 0
     count_harsh = 0
 
-    # STRICT "NO NOISE" FILTER
-    # Removes politics, business, sports, and celebrity gossip.
+    # Relaxed "Boring Filter" (Removed 'meeting', 'talks' to allow governance news)
     boring_triggers = [
-        "market", "sensex", "nifty", "shares", "stock", "dividend", "quarterly", "profit",
-        "sales", "price", "launch", "car", "phone", "specification", "review",
-        "meeting", "talks", "visit", "schedule", "announce", "unveil", "remark",
-        "forecast", "weather", "rain", "heatwave", "update", "likely", "expect",
-        "poll", "vote", "election", "campaign", "seat", "candidate", "bjp", "congress", "party",
-        "cricket", "match", "score", "highlight", "promo", "trailer", "teaser", "actor",
-        "slam", "claim", "allege", "modi", "gandhi", "minister", "govt", "official"
+        "sensex", "nifty", "shares", "dividend", "quarterly", "profit",
+        "sales", "price", "specification", "review", "box office",
+        "cricket", "match", "score", "highlight", "promo", "trailer", "teaser"
     ]
 
-    # HIGH IMPACT ONLY
-    harsh_triggers = [
-        "murder", "rape", "assault", "killed", "dead", "death", "suicide", 
-        "scam", "fraud", "corruption", "bribe", "trapped", "starvation",
-        "crisis", "collapse", "disaster", "tragedy", "horror", "shocking",
-        "protest", "riot", "clash", "violence", "mob", "attack", "threat",
-        "pollution", "toxic", "poison", "poverty", "betrayal", "victim", "drowning"
-    ]
+    # --- ENGINE A: POSITIVE HUNT ---
+    print("\n🔎 --- FILLING BRIGHT SIDE ---")
+    for category, queries in positive_map.items():
+        print(f"   Searching: '{category}'...")
+        for query in queries:
+            encoded_query = urllib.parse.quote(query)
+            rss_url = f"https://news.google.com/rss/search?q={encoded_query}&hl=en-IN&gl=IN&ceid=IN:en"
+            feed = feedparser.parse(rss_url)
+
+            # Check TOP 15 to ensure we find enough
+            for entry in feed.entries[:15]: 
+                title = entry.title
+                link = entry.link
+                title_lower = title.lower()
+
+                if link in seen_links: continue
+                seen_links.add(link)
+
+                if any(word in title_lower for word in boring_triggers): continue
+
+                sentiment, score = analyze_sentiment(title)
+
+                # Accept if POSITIVE OR if it contains key "win" words even if neutral
+                if sentiment != "NEGATIVE": 
+                    try:
+                        existing = supabase.table("positive_news").select("link").eq("link", link).execute()
+                        if not existing.data:
+                            published_iso = parsedate_to_datetime(entry.published).isoformat()
+                            data = {
+                                "title": title,
+                                "link": link,
+                                "source": entry.source.title if 'source' in entry else "Google News",
+                                "published_at": published_iso,
+                                "category": category
+                            }
+                            supabase.table("positive_news").insert(data).execute()
+                            print(f"      ✨ Added: {title[:40]}...")
+                            count_positive += 1
+                    except Exception: pass
+
+    # --- ENGINE B: DARK HUNT ---
+    print("\n🔎 --- FILLING DARK SIDE ---")
+    for category, queries in dark_map.items():
+        print(f"   Searching: '{category}'...")
+        for query in queries:
+            encoded_query = urllib.parse.quote(query)
+            rss_url = f"https://news.google.com/rss/search?q={encoded_query}&hl=en-IN&gl=IN&ceid=IN:en"
+            feed = feedparser.parse(rss_url)
+
+            for entry in feed.entries[:15]:
+                title = entry.title
+                link = entry.link
+                title_lower = title.lower()
+
+                if link in seen_links: continue
+                seen_links.add(link)
+
+                if any(word in title_lower for word in boring_triggers): continue
+
+                sentiment, score = analyze_sentiment(title)
+
+                if sentiment != "POSITIVE":
+                    try:
+                        existing = supabase.table("news").select("link").eq("link", link).execute()
+                        if not existing.data:
+                            published_iso = parsedate_to_datetime(entry.published).isoformat()
+                            data = {
+                                "title": title,
+                                "link": link,
+                                "source": entry.source.title if 'source' in entry else "Google News",
+                                "published_at": published_iso,
+                                "category": category
+                            }
+                            supabase.table("news").insert(data).execute()
+                            print(f"      💀 Added: {title[:40]}...")
+                            count_harsh += 1
+                    except Exception: pass
+
+    print(f"\n🎉 Finished! Added {count_positive} Positive & {count_harsh} Harsh stories.")
     
-    positive_triggers = [
-        "rescue", "save", "alive", "survive", "miracle", "hero", "brave",
-        "reunite", "found", "cure", "heal", "transform", "change life",
-        "donate", "gift", "charity", "kindness", "help", "support",
-        "breakthrough", "innovation", "student creates", "farmer success",
-        "honest", "integrity", "harmony", "unity", "peace", "love", "dream"
-    ]
-
-    # LOOP THROUGH TOPICS
-    for topic in search_topics:
-        # Check if we have enough stories
-        if count_positive >= 25 and count_harsh >= 25:
-            break
-
-        print(f"\n🔎 Scanning Topic: '{topic}'...")
-        encoded_query = urllib.parse.quote(topic)
-        rss_url = f"https://news.google.com/rss/search?q={encoded_query}&hl=en-IN&gl=IN&ceid=IN:en"
-        feed = feedparser.parse(rss_url)
-
-        for entry in feed.entries:
-            title = entry.title
-            link = entry.link
-            title_lower = title.lower()
-            
-            # Deduplication
-            if link in seen_links:
-                continue
-            seen_links.add(link)
-
-            try:
-                published_dt = parsedate_to_datetime(entry.published)
-                published_iso = published_dt.isoformat()
-            except:
-                continue
-
-            # 1. BORING CHECK (Strict)
-            if any(word in title_lower for word in boring_triggers):
-                continue
-
-            # 2. AI Sentiment Analysis
-            sentiment, score = analyze_sentiment(title)
-            target_table = None
-            
-            # 3. HARSH LOGIC
-            if sentiment == "NEGATIVE":
-                if any(word in title_lower for word in harsh_triggers):
-                    target_table = "news"
-                    print(f"   💀 HARSH: {title[:60]}...")
-                    count_harsh += 1
-
-            # 4. POSITIVE LOGIC
-            elif not any(word in title_lower for word in harsh_triggers):
-                if any(word in title_lower for word in positive_triggers):
-                    target_table = "positive_news"
-                    print(f"   💖 WHOLESOME: {title[:60]}...")
-                    count_positive += 1
-                
-                # If AI is super confident (95%+) and passed boring check
-                elif sentiment == "POSITIVE" and score > 0.95:
-                    target_table = "positive_news"
-                    print(f"   ✨ BRIGHT: {title[:60]}...")
-                    count_positive += 1
-
-            # SAVE TO DB
-            if target_table:
-                try:
-                    existing = supabase.table(target_table).select("link").eq("link", link).execute()
-                    if not existing.data:
-                        data = {
-                            "title": title,
-                            "link": link,
-                            "source": entry.source.title if 'source' in entry else "Google News",
-                            "published_at": published_iso
-                        }
-                        supabase.table(target_table).insert(data).execute()
-                except Exception as e:
-                    pass
-
-    print(f"\n🎉 Finished! Added {count_positive} Wholesome & {count_harsh} Harsh stories.")
-    
-    maintain_limit("positive_news")
-    maintain_limit("news")
+    # Run Smart Maintenance
+    maintain_per_category_limit("positive_news", positive_map.keys())
+    maintain_per_category_limit("news", dark_map.keys())
 
 if __name__ == "__main__":
     fetch_and_classify_news()
