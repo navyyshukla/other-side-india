@@ -1,4 +1,4 @@
-# 🇮🇳 The Other Sides of India
+[# 🇮🇳 The Other Sides of India
 
 > **"Two Worlds. One Nation."**
 
@@ -43,17 +43,16 @@ A dual-perspective news aggregation platform that uncovers the hidden realities 
 ⚡ Getting Started
 
 1. Clone the Repository
-Bash
 
 git clone [https://github.com/your-username/other-side-india.git](https://github.com/your-username/other-side-india.git)
 cd other-side-india
 
 2. Install Frontend Dependencies
-Bash
 
 npm install
 
 3. Set Up Environment Variables
+
 Create a .env.local file in the root directory:
 
 Code snippet
@@ -62,7 +61,6 @@ NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_KEY=your_supabase_anon_key
 
 4. Run the Development Server
-Bash
 
 npm run dev
 Open https://other-side-india.vercel.app/ to see the site.
@@ -103,4 +101,4 @@ Process: 1. Boots up a virtual machine. 2. Installs lightweight AI tools (CPU-on
 [ ] Newsletter: Auto-generate a weekly email summary of the top Dark vs. Bright stories.
 
 📄 License
-This project is open-source and available under the MIT License.
+This project is open-source and available under the MIT License.](https://other-side-india.vercel.app/)
