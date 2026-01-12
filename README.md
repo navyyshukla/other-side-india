@@ -27,4 +27,7 @@ A dual-perspective news aggregation platform that uncovers the hidden realities 
 * **Automation:** GitHub Actions (Cron Job)
 
 📄 License
-This project is open-source and available under the MIT License.](https://other-side-india.vercel.app/)
+This project is open-source and available under the MIT License.
+
+## Website Link:
+(https://other-side-india.vercel.app/)
