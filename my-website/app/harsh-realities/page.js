@@ -29,7 +29,7 @@ export default async function HarshRealities() {
       {/* Navbar with Dark Glass Effect */}
       <nav className="fixed top-0 w-full z-50 px-6 py-4 bg-black/60 backdrop-blur-md border-b border-white/10 flex justify-between items-center transition-all duration-300">
         <h1 className="text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-orange-600 tracking-wider uppercase">
-          The Other Side
+          The Dark Side
         </h1>
         <Link href="/">
           <button className="px-5 py-2 bg-white/5 border border-white/10 text-gray-300 rounded-full hover:bg-red-600 hover:text-white hover:border-red-600 transition-all text-sm font-bold shadow-sm flex items-center gap-2">

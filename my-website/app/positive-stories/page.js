@@ -27,7 +27,7 @@ export default async function PositiveStories() {
       {/* Navbar */}
       <nav className="fixed top-0 w-full z-50 px-6 py-4 bg-black/40 backdrop-blur-md border-b border-white/5 flex justify-between items-center">
         <h1 className="text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300 tracking-wider uppercase">
-          The Other Side
+          The Bright Side
         </h1>
         <Link href="/">
           <button className="px-5 py-2 bg-white/5 border border-white/10 text-emerald-100 rounded-full hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-all text-sm font-bold flex items-center gap-2">
