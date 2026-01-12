@@ -1,4 +1,4 @@
-[# The Other Sides of India
+[The Other Sides of India
 
 > **"Two Worlds. One Nation."**
 
