@@ -25,7 +25,7 @@ export default function LandingSplit({ latestHarsh, latestBright }) {
         </h1>
         <div className="mt-2 md:mt-3 px-4 py-1 md:px-6 md:py-1.5 bg-white/10 backdrop-blur-md border border-white/10 rounded-full">
           <p className="text-white/90 text-[8px] md:text-xs font-bold tracking-[0.2em] md:tracking-[0.3em] uppercase">
-            TWO WORLDS. ONE NATION.
+            ONE NATION, DIFFERENT REALITIES
           </p>
         </div>
       </header>
@@ -97,7 +97,7 @@ export default function LandingSplit({ latestHarsh, latestBright }) {
 
                 <Link href="/harsh-realities">
                   <button className="px-5 py-2 md:px-8 md:py-3 bg-red-600 text-white text-xs md:text-base font-bold rounded-full hover:bg-red-500 hover:scale-105 transition-all duration-300 shadow-[0_0_30px_rgba(220,38,38,0.4)] tracking-wide">
-                    UNCOVER TRUTH
+                    UNCOVER THE TRUTH
                   </button>
                 </Link>
               </div>
