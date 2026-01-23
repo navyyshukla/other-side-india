@@ -94,25 +94,25 @@ Plaintext
 └── requirements.txt    # Python Dependencies
 ```
 
-🤖 How the AI Works
-Fetch: The system pulls RSS feeds from major outlets (Times of India, The Hindu, NDTV).
+# 🤖 How the AI Works
+1. **Fetch:** The system pulls RSS feeds from major outlets (Times of India, The Hindu, NDTV).
 
-Clean: HTML tags and noise are removed.
+2. **Clean:** HTML tags and noise are removed.
 
-Analyze: The text is passed through distilbert-base-uncased-finetuned-sst-2-english.
+3. **Analyze:** The text is passed through distilbert-base-uncased-finetuned-sst-2-english.
 
-Classify:
+4. **Classify:**
 
-Negative Sentiment → Categorized into "Corruption", "Crime", etc.
+ - Negative Sentiment → Categorized into "Corruption", "Crime", etc.
 
-Positive Sentiment → Categorized into "Innovation", "Growth", etc.
+ - Positive Sentiment → Categorized into "Innovation", "Growth", etc.
 
-Store: Data is upserted into Supabase for the frontend to render.
+5. **Store:** Data is upserted into Supabase for the frontend to render.
 
-🤝 Contributing
+# 🤝 Contributing
 Contributions are welcome! Please fork the repository and create a pull request.
 
-Fork the Project
+**Fork the Project**
 
 Create your Feature Branch (git checkout -b feature/AmazingFeature)
 
@@ -124,5 +124,3 @@ Open a Pull Request
 
 📄 License
 Distributed under the MIT License. See LICENSE for more information.
-
-<p align="center"> Built with ❤️ by <a href="https://www.google.com/search?q=https://github.com/navyyshukla">Navyy Shukla</a> </p>
