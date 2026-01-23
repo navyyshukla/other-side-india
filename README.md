@@ -46,27 +46,31 @@ Follow these steps to run the project locally.
 ```bash
 git clone [https://github.com/navyyshukla/other-side-india.git](https://github.com/navyyshukla/other-side-india.git)
 cd other-side-india
-2. Setup the Frontend
+```
+### 2. Setup the Frontend
 Navigate to the website directory and install dependencies:
 
-Bash
+```bash
 cd my-website
 npm install
+```
+
 Create a .env.local file in the my-website/ folder and add your Supabase keys:
 
-Code snippet
+```bash
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 Run the development server:
-
-Bash
+```bash
 npm run dev
 Open http://localhost:3000 to see the site.
+```
 
-3. Setup the AI Scraper (Backend)
+### 3. Setup the AI Scraper (Backend)
 If you want to run the news scraper manually:
 
-Bash
+```bash
 # Go back to the root folder
 cd ..
 
@@ -76,8 +80,10 @@ pip install -r requirements.txt
 # Run the scraper
 python ai_scraper.py
 (Note: You need a .env file in the root with SUPABASE_URL and SUPABASE_KEY for the Python script to write to the DB).
+```
 
 📂 Project Structure
+```bash
 Plaintext
 ├── .github/workflows   # Automation scripts (Cron jobs)
 ├── my-website/         # Next.js Frontend
@@ -86,6 +92,8 @@ Plaintext
 │   └── public/         # Static assets
 ├── ai_scraper.py       # Python Script for Scraping & AI
 └── requirements.txt    # Python Dependencies
+```
+
 🤖 How the AI Works
 Fetch: The system pulls RSS feeds from major outlets (Times of India, The Hindu, NDTV).
 
