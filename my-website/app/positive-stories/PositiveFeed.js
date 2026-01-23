@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import ShareButton from '../components/ShareButton';
 
 export default function PositiveFeed({ articles }) {
   const [activeTab, setActiveTab] = useState('All');
@@ -19,7 +20,7 @@ export default function PositiveFeed({ articles }) {
     ? articles 
     : articles.filter(news => news.category === activeTab);
 
-// NEW LOGIC:
+  // Logic to separate the Hero story from the rest
   const heroStory = filteredArticles.length > 0 ? filteredArticles[0] : null;
   const gridStories = filteredArticles.length > 1 ? filteredArticles.slice(1) : [];
 
@@ -43,7 +44,7 @@ export default function PositiveFeed({ articles }) {
         ))}
       </div>
 
-      {/* --- HERO SECTION (Only for 'All' tab) --- */}
+      {/* --- HERO SECTION (Only if stories exist) --- */}
       {heroStory && (
         <div className="mb-16 animate-fade-in-up">
           <div className="relative group w-full bg-gradient-to-r from-emerald-950/80 to-black border border-emerald-500/30 rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(16,185,129,0.15)] hover:shadow-[0_0_80px_rgba(16,185,129,0.3)] transition-all duration-500">
@@ -62,7 +63,8 @@ export default function PositiveFeed({ articles }) {
                     <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
                   </span>
                   <span className="text-emerald-400 font-black tracking-widest text-xs uppercase">LATEST HOPE</span>
-                  <span className="text-emerald-200/50 text-xs">| {new Date(heroStory.published_at).toLocaleDateString()}</span>
+                  {/* FIXED DATE FORMAT HERE */}
+                  <span className="text-emerald-200/50 text-xs">| {new Date(heroStory.published_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                 </div>
                 
                 <h2 className="text-3xl md:text-5xl font-black text-white leading-tight mb-6 group-hover:text-emerald-400 transition-colors duration-300">
@@ -78,17 +80,26 @@ export default function PositiveFeed({ articles }) {
                    </span>
                 </div>
 
-                <a 
-                  href={heroStory.link} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-8 py-4 bg-emerald-500 text-white font-bold rounded-xl hover:bg-emerald-400 hover:scale-105 transition-all duration-300 shadow-lg shadow-emerald-900/50"
-                >
-                  READ INSPIRING STORY
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                  </svg>
-                </a>
+                <div className="flex flex-wrap items-center gap-4">
+                  <a 
+                    href={heroStory.link} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-8 py-4 bg-emerald-500 text-white font-bold rounded-xl hover:bg-emerald-400 hover:scale-105 transition-all duration-300 shadow-lg shadow-emerald-900/50"
+                  >
+                    READ INSPIRING STORY
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                    </svg>
+                  </a>
+
+                  <ShareButton 
+                    title={heroStory.title} 
+                    category={heroStory.category} 
+                    source={heroStory.source} 
+                    side="bright" 
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -107,8 +118,9 @@ export default function PositiveFeed({ articles }) {
                 <span className="px-3 py-1 bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-[10px] font-extrabold rounded-full uppercase tracking-wider">
                   {news.category || 'Story'}
                 </span>
+                {/* FIXED DATE FORMAT HERE */}
                 <span className="text-emerald-100/40 text-xs font-medium">
-                  {new Date(news.published_at).toLocaleDateString()}
+                  {new Date(news.published_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </span>
               </div>
               
@@ -117,18 +129,27 @@ export default function PositiveFeed({ articles }) {
               </h3>
             </div>
             
-            <div className="px-8 pb-8 pt-0 mt-auto">
+            <div className="px-8 pb-8 pt-0 mt-auto flex gap-3 items-center">
               <a 
                 href={news.link} 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="w-full inline-flex justify-center items-center gap-2 bg-emerald-500/10 text-emerald-100 font-semibold py-3.5 rounded-xl border border-emerald-500/10 group-hover:bg-emerald-600 group-hover:text-white group-hover:border-emerald-600 transition-all duration-300 text-sm"
+                className="flex-grow inline-flex justify-center items-center gap-2 bg-emerald-500/10 text-emerald-100 font-semibold py-3.5 rounded-xl border border-emerald-500/10 group-hover:bg-emerald-600 group-hover:text-white group-hover:border-emerald-600 transition-all duration-300 text-sm"
               >
                 Read Story
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12h15m0 0l-6.75-6.75M19.5 12l-6.75 6.75" />
                 </svg>
               </a>
+
+              <div className="flex-shrink-0">
+                <ShareButton 
+                    title={news.title} 
+                    category={news.category} 
+                    source={news.source} 
+                    side="bright" 
+                />
+              </div>
             </div>
           </div>
         ))}
