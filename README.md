@@ -42,7 +42,7 @@ It scrapes major Indian news sources, processes the text using a **BERT-based Ma
 
 Follow these steps to run the project locally.
 
-### **1. Clone the Repository**
+### 1. Clone the Repository
 ```bash
 git clone [https://github.com/navyyshukla/other-side-india.git](https://github.com/navyyshukla/other-side-india.git)
 cd other-side-india
@@ -52,7 +52,7 @@ Navigate to the website directory and install dependencies:
 Bash
 cd my-website
 npm install
-Create a .env.local file in my-website/ and add your Supabase keys:
+Create a .env.local file in the my-website/ folder and add your Supabase keys:
 
 Code snippet
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
@@ -78,6 +78,7 @@ python ai_scraper.py
 (Note: You need a .env file in the root with SUPABASE_URL and SUPABASE_KEY for the Python script to write to the DB).
 
 📂 Project Structure
+Plaintext
 ├── .github/workflows   # Automation scripts (Cron jobs)
 ├── my-website/         # Next.js Frontend
 │   ├── app/            # App Router (Pages & Logic)
@@ -115,3 +116,5 @@ Open a Pull Request
 
 📄 License
 Distributed under the MIT License. See LICENSE for more information.
+
+<p align="center"> Built with ❤️ by <a href="https://www.google.com/search?q=https://github.com/navyyshukla">Navyy Shukla</a> </p>
