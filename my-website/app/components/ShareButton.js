@@ -20,23 +20,42 @@ export default function ShareButton({ title, category, source, side }) {
   const labelText = isDark ? '#fca5a5' : '#6ee7b7'; // Lighter text
   const dotColor = isDark ? '#dc2626' : '#10b981';
 
-  const handleDownload = async () => {
+  const handleShare = async () => {
     setLoading(true);
     if (printRef.current) {
       try {
-        // html-to-image is much more robust with modern CSS
+        // 1. Generate the image from the hidden DOM element
         const dataUrl = await toPng(printRef.current, {
           cacheBust: true,
-          pixelRatio: 2, // High resolution
+          pixelRatio: 2, // High resolution for clear text
           backgroundColor: '#000000', // Ensure no transparency issues
         });
 
-        const link = document.createElement('a');
-        link.download = `India-News-${isDark ? 'Dark' : 'Bright'}-${Date.now()}.png`;
-        link.href = dataUrl;
-        link.click();
+        // 2. Convert the Data URL (Base64) into a File object
+        const blob = await (await fetch(dataUrl)).blob();
+        const file = new File([blob], `India-Reality-${side}.png`, { type: 'image/png' });
+
+        // 3. Check if the browser supports the native Share API with files
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              files: [file],
+              title: 'The Other Sides of India',
+              text: `Check out this story: "${title}"`,
+            });
+          } catch (shareError) {
+             // User closed the share sheet or it failed
+             console.log('Share canceled or failed:', shareError);
+          }
+        } else {
+          // 4. FALLBACK: If on a laptop/desktop without share support, download it instead
+          const link = document.createElement('a');
+          link.download = `India-Reality-${side}-${Date.now()}.png`;
+          link.href = dataUrl;
+          link.click();
+        }
       } catch (err) {
-        console.error("Failed to generate image", err);
+        console.error("Failed to generate or share image", err);
       }
     }
     setLoading(false);
@@ -46,14 +65,14 @@ export default function ShareButton({ title, category, source, side }) {
     <>
       {/* --- VISIBLE BUTTON --- */}
       <button 
-        onClick={handleDownload}
+        onClick={handleShare}
         disabled={loading}
         className={`p-2 rounded-full transition-all duration-300 ${
            isDark 
            ? 'bg-red-900/20 text-red-400 hover:bg-red-600 hover:text-white' 
            : 'bg-emerald-900/20 text-emerald-400 hover:bg-emerald-500 hover:text-white'
         }`}
-        title="Share as Image"
+        title="Share this story"
       >
         {loading ? (
            <span className="animate-spin block w-5 h-5 border-2 border-current border-t-transparent rounded-full"></span>
@@ -64,12 +83,10 @@ export default function ShareButton({ title, category, source, side }) {
         )}
       </button>
 
-      {/* --- HIDDEN TEMPLATE --- */}
-      {/* We use inline styles heavily here to ensure perfect rendering without Tailwind dependencies */}
+      {/* --- HIDDEN TEMPLATE (This is what gets captured as an image) --- */}
       <div style={{ position: 'fixed', left: '-9999px', top: 0, zIndex: -1 }}>
         <div 
           ref={printRef}
-          // Using standard flexbox styles inline
           style={{
             width: '600px',
             height: '600px',
@@ -136,7 +153,7 @@ export default function ShareButton({ title, category, source, side }) {
           <div style={{ position: 'relative', zIndex: 10, marginTop: 'auto', paddingTop: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
              <div>
                 <p style={{ color: '#9ca3af', fontSize: '12px', fontWeight: '500', marginBottom: '4px', margin: 0 }}>Read the full story at</p>
-                <p style={{ color: 'white', fontWeight: 'bold', letterSpacing: '0.025em', margin: 0 }}>https://other-side-india.vercel.app/</p>
+                <p style={{ color: 'white', fontWeight: 'bold', letterSpacing: '0.025em', margin: 0 }}>other-side-india.vercel.app</p>
              </div>
              <div style={{ textAlign: 'right' }}>
                 <p style={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.2em', opacity: 0.5, color: isDark ? '#fecaca' : '#a7f3d0', margin: 0 }}>

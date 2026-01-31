@@ -1,5 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
-import LandingSplit from "./components/LandingSplit"; // Import the client component
+import LandingSplit from "./components/LandingSplit"; 
+// Note: We don't render ShareButton here directly because LandingSplit handles the UI
+// But we need to fetch the correct data for it below.
 
 // 1. Connect to Supabase
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -14,7 +16,7 @@ export default async function Home() {
   // 2. Fetch the Single Latest Story from Dark Side
   const { data: harshData } = await supabase
     .from('news')
-    .select('title')
+    .select('*') // CHANGED: Fetch ALL fields (title, source, summary) for the Share Button
     .order('published_at', { ascending: false })
     .limit(1)
     .single();
@@ -22,12 +24,12 @@ export default async function Home() {
   // 3. Fetch the Single Latest Story from Bright Side
   const { data: brightData } = await supabase
     .from('positive_news')
-    .select('title')
+    .select('*') // CHANGED: Fetch ALL fields here too
     .order('published_at', { ascending: false })
     .limit(1)
     .single();
 
-  // 4. Render the interactive UI with the data
+  // 4. Render the interactive UI
   return (
     <LandingSplit 
       latestHarsh={harshData} 

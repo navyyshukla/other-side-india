@@ -1,5 +1,6 @@
 'use client';
 
+import ShareButton from './ShareButton';
 import Link from "next/link";
 import { useState } from "react";
 
@@ -78,7 +79,7 @@ export default function LandingSplit({ latestHarsh, latestBright }) {
           </div>
 
           {/* HOVER/ACTIVE STATE (News Headline) */}
-          <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[70%] md:w-[600px] text-center z-30 transition-all duration-500 delay-75 ${hovered === 'left' ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
+          <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[85%] md:w-[600px] text-center z-30 transition-all duration-500 delay-75 ${hovered === 'left' ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
               <div className="flex flex-col items-center">
                 <div className="flex items-center gap-2 mb-3 md:mb-6">
                   <span className="relative flex h-2 w-2">
@@ -95,11 +96,22 @@ export default function LandingSplit({ latestHarsh, latestBright }) {
                   </h3>
                 </div>
 
-                <Link href="/harsh-realities">
-                  <button className="px-5 py-2 md:px-8 md:py-3 bg-red-600 text-white text-xs md:text-base font-bold rounded-full hover:bg-red-500 hover:scale-105 transition-all duration-300 shadow-[0_0_30px_rgba(220,38,38,0.4)] tracking-wide">
-                    UNCOVER THE TRUTH
-                  </button>
-                </Link>
+                {/* --- ACTION ROW --- */}
+                <div className="flex items-center justify-center gap-4">
+                  <Link href="/harsh-realities">
+                    <button className="px-5 py-2 md:px-8 md:py-3 bg-red-600 text-white text-xs md:text-base font-bold rounded-full hover:bg-red-500 hover:scale-105 transition-all duration-300 shadow-[0_0_30px_rgba(220,38,38,0.4)] tracking-wide whitespace-nowrap">
+                      UNCOVER THE TRUTH
+                    </button>
+                  </Link>
+                  
+                  {/* SHARE BUTTON INTEGRATED HERE */}
+                  <ShareButton 
+                    title={latestHarsh?.title || "Dark Reality"} 
+                    category="Reality" 
+                    source={latestHarsh?.source || "The Other Side"} 
+                    side="dark" 
+                  />
+                </div>
               </div>
           </div>
         </div>
@@ -143,7 +155,7 @@ export default function LandingSplit({ latestHarsh, latestBright }) {
           </div>
 
           {/* HOVER/ACTIVE STATE */}
-          <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[70%] md:w-[600px] text-center z-30 transition-all duration-500 delay-75 ${hovered === 'right' ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
+          <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[85%] md:w-[600px] text-center z-30 transition-all duration-500 delay-75 ${hovered === 'right' ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
               <div className="flex flex-col items-center">
                 <div className="flex items-center gap-2 mb-3 md:mb-6">
                   <span className="relative flex h-2 w-2">
@@ -159,11 +171,22 @@ export default function LandingSplit({ latestHarsh, latestBright }) {
                   </h3>
                 </div>
 
-                <Link href="/positive-stories">
-                  <button className="px-5 py-2 md:px-8 md:py-3 bg-emerald-500 text-white text-xs md:text-base font-bold rounded-full hover:bg-emerald-400 hover:scale-105 transition-all duration-300 shadow-[0_0_30px_rgba(16,185,129,0.4)] tracking-wide">
-                    ENTER THE LIGHT
-                  </button>
-                </Link>
+                {/* --- ACTION ROW --- */}
+                <div className="flex items-center justify-center gap-4">
+                  <Link href="/positive-stories">
+                    <button className="px-5 py-2 md:px-8 md:py-3 bg-emerald-500 text-white text-xs md:text-base font-bold rounded-full hover:bg-emerald-400 hover:scale-105 transition-all duration-300 shadow-[0_0_30px_rgba(16,185,129,0.4)] tracking-wide whitespace-nowrap">
+                      ENTER THE LIGHT
+                    </button>
+                  </Link>
+
+                  {/* SHARE BUTTON INTEGRATED HERE */}
+                  <ShareButton 
+                    title={latestBright?.title || "Bright Future"} 
+                    category="Hope" 
+                    source={latestBright?.source || "The Other Side"} 
+                    side="bright" 
+                  />
+                </div>
               </div>
           </div>
         </div>
