@@ -27,28 +27,30 @@ export default function ShareButton({ title, category, source, side }) {
         // 1. Generate the image from the hidden DOM element
         const dataUrl = await toPng(printRef.current, {
           cacheBust: true,
-          pixelRatio: 2, // High resolution for clear text
-          backgroundColor: '#000000', // Ensure no transparency issues
+          pixelRatio: 2, 
+          backgroundColor: '#000000', 
         });
 
-        // 2. Convert the Data URL (Base64) into a File object
+        // 2. Convert Data URL to File
         const blob = await (await fetch(dataUrl)).blob();
         const file = new File([blob], `India-Reality-${side}.png`, { type: 'image/png' });
 
-        // 3. Check if the browser supports the native Share API with files
+        // 3. Define the caption/message
+        const shareMessage = `For more stories like this, visit:\nhttps://other-side-india.vercel.app`;
+
+        // 4. Trigger Native Share
         if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
           try {
             await navigator.share({
               files: [file],
               title: 'The Other Sides of India',
-              text: `Check out this story: "${title}"`,
+              text: shareMessage, // <--- This text becomes the caption on WhatsApp
             });
           } catch (shareError) {
-             // User closed the share sheet or it failed
              console.log('Share canceled or failed:', shareError);
           }
         } else {
-          // 4. FALLBACK: If on a laptop/desktop without share support, download it instead
+          // Fallback Download
           const link = document.createElement('a');
           link.download = `India-Reality-${side}-${Date.now()}.png`;
           link.href = dataUrl;
