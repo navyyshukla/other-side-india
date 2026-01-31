@@ -154,7 +154,7 @@ export default function ShareButton({ title, category, source, side }) {
           {/* Footer */}
           <div style={{ position: 'relative', zIndex: 10, marginTop: 'auto', paddingTop: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
              <div>
-                <p style={{ color: '#9ca3af', fontSize: '12px', fontWeight: '500', marginBottom: '4px', margin: 0 }}>Read the full story at</p>
+                <p style={{ color: '#9ca3af', fontSize: '12px', fontWeight: '500', marginBottom: '4px', margin: 0 }}>Read more such stories at</p>
                 <p style={{ color: 'white', fontWeight: 'bold', letterSpacing: '0.025em', margin: 0 }}>other-side-india.vercel.app</p>
              </div>
              <div style={{ textAlign: 'right' }}>
