@@ -11,57 +11,46 @@ export const revalidate = 0;
 
 export default async function Home() {
   
-  // Calculate the timestamp for 24 hours ago
+  // Calculate 24h threshold
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
   const dateThreshold = yesterday.toISOString();
 
   // --- PARALLEL DATA FETCHING ---
-  // We use Promise.all to fetch everything at once for speed
-  const [harshRes, brightRes, darkStats, brightStats] = await Promise.all([
+  const [harshRes, brightRes, darkStats, brightStats, sentimentRes] = await Promise.all([
     // A. Latest Dark Story
-    supabase
-      .from('news')
-      .select('*')
-      .order('published_at', { ascending: false })
-      .limit(1)
-      .single(),
+    supabase.from('news').select('*').order('published_at', { ascending: false }).limit(1).single(),
 
     // B. Latest Bright Story
-    supabase
-      .from('positive_news')
-      .select('*')
-      .order('published_at', { ascending: false })
-      .limit(1)
-      .single(),
+    supabase.from('positive_news').select('*').order('published_at', { ascending: false }).limit(1).single(),
 
     // C. COUNT Dark stories from last 24h
-    supabase
-      .from('news')
-      .select('*', { count: 'exact', head: true }) // 'head: true' means don't fetch data, just count
-      .gte('published_at', dateThreshold),
+    supabase.from('news').select('*', { count: 'exact', head: true }).gte('published_at', dateThreshold),
 
     // D. COUNT Bright stories from last 24h
+    supabase.from('positive_news').select('*', { count: 'exact', head: true }).gte('published_at', dateThreshold),
+
+    // E. NEW: Fetch Today's Sentiment Votes
     supabase
-      .from('positive_news')
-      .select('*', { count: 'exact', head: true })
-      .gte('published_at', dateThreshold)
+      .from('sentiment_votes')
+      .select('*')
+      .eq('date', new Date().toISOString().split('T')[0]) 
+      .single()
   ]);
 
-  // Extract data
-  const harshData = harshRes.data;
-  const brightData = brightRes.data;
-  
-  // Handle stats (default to 1 if empty to avoid division by zero errors)
-  const darkCount = darkStats.count || 0;
-  const brightCount = brightStats.count || 0;
+  // Extract Vote Data (Safe fallback if no votes yet)
+  const votes = sentimentRes.data || { grim_count: 0, hopeful_count: 0 };
 
   // 4. Render UI
   return (
     <LandingSplit 
-      latestHarsh={harshData} 
-      latestBright={brightData}
-      stats={{ dark: darkCount, bright: brightCount }} // <--- Passing the new stats
+      latestHarsh={harshRes.data} 
+      latestBright={brightRes.data}
+      stats={{ 
+        dark: darkStats.count || 0, 
+        bright: brightStats.count || 0,
+        votes: { grim: votes.grim_count, hopeful: votes.hopeful_count } // <--- Passing votes here
+      }} 
     />
   );
 }

@@ -2,20 +2,42 @@
 
 import ShareButton from './ShareButton';
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+// We use '../actions' because your file is named actions.js
+import { submitVote } from '../actions'; 
 
 export default function LandingSplit({ latestHarsh, latestBright, stats }) {
-  const [hovered, setHovered] = useState(null); // 'left', 'right', or null
+  const [hovered, setHovered] = useState(null);
+  const [hasVoted, setHasVoted] = useState(false);
+  const [localVotes, setLocalVotes] = useState(stats?.votes || { grim: 0, hopeful: 0 });
 
-  // --- REALITY SCORE CALCULATION ---
-  // Calculates the percentage of Dark vs. Bright news in the last 24h
-  const totalStories = (stats?.dark || 0) + (stats?.bright || 0);
-  const safeTotal = totalStories === 0 ? 1 : totalStories; // Prevent division by zero
-  
-  const darkPercentage = Math.round(((stats?.dark || 0) / safeTotal) * 100);
-  const brightPercentage = 100 - darkPercentage;
+  // Check LocalStorage on mount
+  useEffect(() => {
+    const votedDate = localStorage.getItem('voted_date');
+    const today = new Date().toISOString().split('T')[0];
+    if (votedDate === today) setHasVoted(true);
+  }, []);
 
-  // Mobile Toggle: Since phones don't "hover", clicking a side expands it
+  // --- CALCULATION LOGIC ---
+  const mediaTotal = (stats?.dark || 0) + (stats?.bright || 0);
+  const mediaSafeTotal = mediaTotal === 0 ? 1 : mediaTotal;
+  const mediaGrimPct = Math.round(((stats?.dark || 0) / mediaSafeTotal) * 100);
+  const mediaHopePct = 100 - mediaGrimPct;
+
+  const voteTotal = (localVotes.grim || 0) + (localVotes.hopeful || 0);
+  const voteSafeTotal = voteTotal === 0 ? 1 : voteTotal;
+  const voteGrimPct = Math.round(((localVotes.grim || 0) / voteSafeTotal) * 100);
+  const voteHopePct = 100 - voteGrimPct;
+
+  // --- HANDLERS ---
+  const handleVote = async (type) => {
+    if (hasVoted) return;
+    setLocalVotes(prev => ({ ...prev, [type]: prev[type] + 1 }));
+    setHasVoted(true);
+    localStorage.setItem('voted_date', new Date().toISOString().split('T')[0]);
+    await submitVote(type);
+  };
+
   const handleMobileInteraction = (side) => {
     if (hovered === side) setHovered(null);
     else setHovered(side);
@@ -24,54 +46,77 @@ export default function LandingSplit({ latestHarsh, latestBright, stats }) {
   return (
     <main className="relative h-screen w-full overflow-hidden bg-black font-sans selection:bg-white selection:text-black">
       
-      {/* =======================
-          FIXED HEADER (RESPONSIVE)
-         ======================= */}
-      <header className="absolute top-0 w-full z-50 flex flex-col items-center py-4 md:py-6 pointer-events-none">
-        <h1 className="text-2xl md:text-5xl font-black text-white tracking-tighter uppercase drop-shadow-2xl text-center px-4 leading-none">
+      {/* HEADER */}
+      <header className="absolute top-0 w-full z-50 flex flex-col items-center py-4 md:py-6 pointer-events-auto">
+        <h1 className="text-3xl md:text-5xl font-black text-white tracking-tighter uppercase drop-shadow-2xl text-center px-4 leading-none pointer-events-none">
           THE OTHER SIDES OF INDIA
         </h1>
         
-        {/* Subtitle Badge */}
-        <div className="mt-2 md:mt-3 px-4 py-1 md:px-6 md:py-1.5 bg-white/10 backdrop-blur-md border border-white/10 rounded-full mb-4">
-          <p className="text-white/90 text-[8px] md:text-xs font-bold tracking-[0.2em] md:tracking-[0.3em] uppercase">
-            ONE NATION, DIFFERENT REALITIES
-          </p>
-        </div>
-
-        {/* --- REALITY SCORE BAR (New Feature) --- */}
-        <div className="flex flex-col items-center gap-1.5 w-full max-w-[200px] md:max-w-[300px]">
+        {/* --- STATS DASHBOARD (High Visibility Version) --- */}
+        <div className="mt-6 flex flex-col gap-4 w-full max-w-[320px] md:max-w-[420px] bg-black/60 backdrop-blur-xl p-5 rounded-2xl border border-white/20 shadow-2xl transition-all duration-500 hover:bg-black/80">
           
-          {/* Label */}
-          <div className="flex justify-between w-full text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-white/80">
-            <span className="text-red-400 drop-shadow-md">{darkPercentage}% GRIM</span>
-            <span className="text-emerald-400 drop-shadow-md">{brightPercentage}% HOPE</span>
+          {/* 1. MEDIA REALITY BAR */}
+          <div className="flex flex-col gap-2 w-full opacity-90 hover:opacity-100 transition-opacity">
+            <div className="flex justify-between text-[10px] md:text-xs font-bold uppercase tracking-widest text-white/80">
+              <span className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                Media Reports
+              </span>
+              <span>Last 24h</span>
+            </div>
+            {/* Taller Bar (h-4) with TEXT OVERLAY */}
+            <div className="relative h-4 w-full bg-gray-800 rounded-lg overflow-hidden border border-white/10 shadow-inner">
+               {/* Red Bar */}
+               <div className="absolute left-0 h-full bg-gradient-to-r from-red-700 to-red-500 flex items-center pl-2" style={{ width: `${mediaGrimPct}%` }}>
+                 {mediaGrimPct > 10 && <span className="text-[9px] font-black text-white drop-shadow-md">{mediaGrimPct}%</span>}
+               </div>
+               
+               {/* Green Bar */}
+               <div className="absolute right-0 h-full bg-gradient-to-l from-emerald-700 to-emerald-500 flex items-center justify-end pr-2" style={{ width: `${mediaHopePct}%` }}>
+                 {mediaHopePct > 10 && <span className="text-[9px] font-black text-black drop-shadow-md">{mediaHopePct}%</span>}
+               </div>
+            </div>
           </div>
 
-          {/* The Visual Bar */}
-          <div className="relative h-1.5 md:h-2 w-full bg-gray-800/50 rounded-full overflow-hidden backdrop-blur-sm border border-white/10 shadow-lg">
-             {/* Red Section (Dark Side) */}
-             <div 
-               className="absolute top-0 left-0 h-full bg-gradient-to-r from-red-900 via-red-600 to-red-500 transition-all duration-1000 ease-out"
-               style={{ width: `${darkPercentage}%` }}
-             ></div>
-             
-             {/* Green Section (Bright Side) */}
-             <div 
-               className="absolute top-0 right-0 h-full bg-gradient-to-l from-emerald-900 via-emerald-600 to-emerald-500 transition-all duration-1000 ease-out"
-               style={{ width: `${brightPercentage}%` }}
-             ></div>
-             
-             {/* The "Needle" (Divider) */}
-             <div 
-               className="absolute top-0 bottom-0 w-[2px] bg-white shadow-[0_0_10px_white] z-10 transition-all duration-1000 ease-out"
-               style={{ left: `${darkPercentage}%` }}
-             ></div>
+          {/* 2. COMMUNITY PULSE */}
+          <div className="flex flex-col gap-2 w-full border-t border-white/10 pt-3">
+            <div className="flex justify-between text-[10px] md:text-xs font-bold uppercase tracking-widest text-white/90">
+              <span className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-blue-400"></span>
+                Public Mood
+              </span>
+              {hasVoted ? <span>{voteTotal} Votes</span> : <span className="text-yellow-400 animate-pulse">Your Turn</span>}
+            </div>
+
+            {hasVoted ? (
+              // RESULT BAR (Taller)
+              <div className="relative h-4 w-full bg-gray-800 rounded-lg overflow-hidden border border-white/10 shadow-inner">
+                 <div className="absolute left-0 h-full bg-red-500/80 flex items-center pl-2" style={{ width: `${voteGrimPct}%` }}>
+                    {voteGrimPct > 10 && <span className="text-[9px] font-black text-white drop-shadow-md">{voteGrimPct}%</span>}
+                 </div>
+                 <div className="absolute right-0 h-full bg-emerald-400/80 flex items-center justify-end pr-2" style={{ width: `${voteHopePct}%` }}>
+                    {voteHopePct > 10 && <span className="text-[9px] font-black text-black drop-shadow-md">{voteHopePct}%</span>}
+                 </div>
+              </div>
+            ) : (
+              // VOTING BUTTONS (Bigger & Clearer)
+              <div className="flex gap-3 h-10">
+                <button 
+                  onClick={() => handleVote('grim')}
+                  className="flex-1 bg-red-950/50 hover:bg-red-600 border border-red-500/30 hover:border-red-400 rounded-lg text-[10px] md:text-xs font-bold text-red-200 hover:text-white uppercase transition-all duration-300 flex items-center justify-center gap-2 group"
+                >
+                  <span className="group-hover:scale-125 transition-transform">👎</span> Grim
+                </button>
+                <button 
+                  onClick={() => handleVote('hopeful')}
+                  className="flex-1 bg-emerald-950/50 hover:bg-emerald-600 border border-emerald-500/30 hover:border-emerald-400 rounded-lg text-[10px] md:text-xs font-bold text-emerald-200 hover:text-white uppercase transition-all duration-300 flex items-center justify-center gap-2 group"
+                >
+                  <span className="group-hover:scale-125 transition-transform">👍</span> Hopeful
+                </button>
+              </div>
+            )}
           </div>
-          
-          <p className="text-[8px] text-white/40 uppercase tracking-widest font-medium">
-             Last 24 Hours
-          </p>
+
         </div>
       </header>
 
@@ -80,7 +125,7 @@ export default function LandingSplit({ latestHarsh, latestBright, stats }) {
          ======================= */}
       <div className="flex flex-col md:flex-row h-full w-full relative">
         
-        {/* --- DARK SIDE (LEFT/TOP) --- */}
+        {/* --- DARK SIDE --- */}
         <div 
           onMouseEnter={() => setHovered('left')}
           onMouseLeave={() => setHovered(null)}
@@ -89,12 +134,10 @@ export default function LandingSplit({ latestHarsh, latestBright, stats }) {
             hovered === 'left' ? 'flex-[1.5] md:flex-[1.8]' : hovered === 'right' ? 'flex-[0.5] md:flex-[0.6]' : 'flex-1'
           }`}
         >
-          {/* Backgrounds */}
           <div className="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-red-950"></div>
           <div className={`absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20 transition-transform duration-1000 ${hovered === 'left' ? 'scale-105' : 'scale-100'}`}></div>
           <div className="absolute inset-0 bg-black/30 group-hover:bg-transparent transition-colors duration-500"></div>
 
-          {/* ABSOLUTE CONTENT CONTAINER (Static) */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[70%] md:w-[600px] text-center pointer-events-none z-20">
             <div className={`transition-all duration-500 transform ${hovered === 'left' ? 'opacity-0 translate-y-4 blur-sm scale-95' : 'opacity-100 translate-y-0 blur-0 scale-100'}`}>
               <div className="inline-block p-2 md:p-3 rounded-full bg-red-600/10 border border-red-500/20 mb-3 md:mb-6 shadow-[0_0_15px_rgba(220,38,38,0.3)]">
@@ -114,7 +157,6 @@ export default function LandingSplit({ latestHarsh, latestBright, stats }) {
             </div>
           </div>
 
-          {/* HOVER/ACTIVE STATE (News Content) */}
           <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[85%] md:w-[600px] text-center z-30 transition-all duration-500 delay-75 ${hovered === 'left' ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
               <div className="flex flex-col items-center">
                 <div className="flex items-center gap-2 mb-3 md:mb-6">
@@ -131,7 +173,6 @@ export default function LandingSplit({ latestHarsh, latestBright, stats }) {
                   </h3>
                 </div>
 
-                {/* --- ACTION ROW --- */}
                 <div className="flex items-center justify-center gap-4">
                   <Link href="/harsh-realities">
                     <button className="px-5 py-2 md:px-8 md:py-3 bg-red-600 text-white text-xs md:text-base font-bold rounded-full hover:bg-red-500 hover:scale-105 transition-all duration-300 shadow-[0_0_30px_rgba(220,38,38,0.4)] tracking-wide whitespace-nowrap">
@@ -149,7 +190,7 @@ export default function LandingSplit({ latestHarsh, latestBright, stats }) {
           </div>
         </div>
 
-        {/* --- BRIGHT SIDE (RIGHT/BOTTOM) --- */}
+        {/* --- BRIGHT SIDE --- */}
         <div 
           onMouseEnter={() => setHovered('right')}
           onMouseLeave={() => setHovered(null)}
@@ -158,12 +199,10 @@ export default function LandingSplit({ latestHarsh, latestBright, stats }) {
             hovered === 'right' ? 'flex-[1.5] md:flex-[1.8]' : hovered === 'left' ? 'flex-[0.5] md:flex-[0.6]' : 'flex-1'
           }`}
         >
-          {/* Backgrounds */}
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-950 via-teal-900 to-black"></div>
           <div className={`absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 transition-transform duration-1000 ${hovered === 'right' ? 'scale-105' : 'scale-100'}`}></div>
           <div className="absolute inset-0 bg-black/30 group-hover:bg-transparent transition-colors duration-500"></div>
 
-          {/* ABSOLUTE CONTENT (Static) */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[70%] md:w-[600px] text-center pointer-events-none z-20">
             <div className={`transition-all duration-500 transform ${hovered === 'right' ? 'opacity-0 translate-y-4 blur-sm scale-95' : 'opacity-100 translate-y-0 blur-0 scale-100'}`}>
               <div className="inline-block p-2 md:p-3 rounded-full bg-emerald-500/10 border border-emerald-400/20 mb-3 md:mb-6 shadow-[0_0_15px_rgba(16,185,129,0.3)]">
@@ -183,7 +222,6 @@ export default function LandingSplit({ latestHarsh, latestBright, stats }) {
             </div>
           </div>
 
-          {/* HOVER/ACTIVE STATE (News Content) */}
           <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[85%] md:w-[600px] text-center z-30 transition-all duration-500 delay-75 ${hovered === 'right' ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
               <div className="flex flex-col items-center">
                 <div className="flex items-center gap-2 mb-3 md:mb-6">
@@ -200,7 +238,6 @@ export default function LandingSplit({ latestHarsh, latestBright, stats }) {
                   </h3>
                 </div>
 
-                {/* --- ACTION ROW --- */}
                 <div className="flex items-center justify-center gap-4">
                   <Link href="/positive-stories">
                     <button className="px-5 py-2 md:px-8 md:py-3 bg-emerald-500 text-white text-xs md:text-base font-bold rounded-full hover:bg-emerald-400 hover:scale-105 transition-all duration-300 shadow-[0_0_30px_rgba(16,185,129,0.4)] tracking-wide whitespace-nowrap">
@@ -218,17 +255,13 @@ export default function LandingSplit({ latestHarsh, latestBright, stats }) {
           </div>
         </div>
 
-      </div>
-
-      {/* =======================
-          CENTER BADGE
-         ======================= */}
-      <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-40 transition-all duration-500 ${hovered ? 'opacity-0 scale-50' : 'opacity-100 scale-100'}`}>
-        <div className="bg-black/40 backdrop-blur-xl border border-white/10 text-white/90 font-bold text-[8px] md:text-xs tracking-[0.2em] px-4 py-2 md:px-5 md:py-3 rounded-full shadow-2xl uppercase whitespace-nowrap">
-          Pick Your Reality
+        {/* --- CENTER BADGE --- */}
+        <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-40 transition-all duration-500 ${hovered ? 'opacity-0 scale-50' : 'opacity-100 scale-100'}`}>
+          <div className="bg-black/40 backdrop-blur-xl border border-white/10 text-white/90 font-bold text-[8px] md:text-xs tracking-[0.2em] px-4 py-2 md:px-5 md:py-3 rounded-full shadow-2xl uppercase whitespace-nowrap">
+            Pick Your Reality
+          </div>
         </div>
-      </div>
-
+      </div>    
     </main>
   );
 }
