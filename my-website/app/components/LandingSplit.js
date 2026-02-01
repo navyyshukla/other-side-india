@@ -52,7 +52,7 @@ export default function LandingSplit({ latestHarsh, latestBright, stats }) {
           THE OTHER SIDES OF INDIA
         </h1>
         
-        {/* --- STATS DASHBOARD (High Visibility Version) --- */}
+        {/* --- STATS DASHBOARD --- */}
         <div className="mt-6 flex flex-col gap-4 w-full max-w-[320px] md:max-w-[420px] bg-black/60 backdrop-blur-xl p-5 rounded-2xl border border-white/20 shadow-2xl transition-all duration-500 hover:bg-black/80">
           
           {/* 1. MEDIA REALITY BAR */}
@@ -64,14 +64,11 @@ export default function LandingSplit({ latestHarsh, latestBright, stats }) {
               </span>
               <span>Last 24h</span>
             </div>
-            {/* Taller Bar (h-4) with TEXT OVERLAY */}
+            {/* Media Bar */}
             <div className="relative h-4 w-full bg-gray-800 rounded-lg overflow-hidden border border-white/10 shadow-inner">
-               {/* Red Bar */}
                <div className="absolute left-0 h-full bg-gradient-to-r from-red-700 to-red-500 flex items-center pl-2" style={{ width: `${mediaGrimPct}%` }}>
                  {mediaGrimPct > 10 && <span className="text-[9px] font-black text-white drop-shadow-md">{mediaGrimPct}%</span>}
                </div>
-               
-               {/* Green Bar */}
                <div className="absolute right-0 h-full bg-gradient-to-l from-emerald-700 to-emerald-500 flex items-center justify-end pr-2" style={{ width: `${mediaHopePct}%` }}>
                  {mediaHopePct > 10 && <span className="text-[9px] font-black text-black drop-shadow-md">{mediaHopePct}%</span>}
                </div>
@@ -85,11 +82,12 @@ export default function LandingSplit({ latestHarsh, latestBright, stats }) {
                 <span className="w-2 h-2 rounded-full bg-blue-400"></span>
                 Public Mood
               </span>
-              {hasVoted ? <span>{voteTotal} Votes</span> : <span className="text-yellow-400 animate-pulse">Your Turn</span>}
+              {/* UPDATED: Shows "Live Stats" instead of vote count */}
+              {hasVoted ? <span className="opacity-80">Live Stats</span> : <span className="text-yellow-400 animate-pulse">Your Turn</span>}
             </div>
 
             {hasVoted ? (
-              // RESULT BAR (Taller)
+              // RESULT BAR
               <div className="relative h-4 w-full bg-gray-800 rounded-lg overflow-hidden border border-white/10 shadow-inner">
                  <div className="absolute left-0 h-full bg-red-500/80 flex items-center pl-2" style={{ width: `${voteGrimPct}%` }}>
                     {voteGrimPct > 10 && <span className="text-[9px] font-black text-white drop-shadow-md">{voteGrimPct}%</span>}
@@ -99,7 +97,7 @@ export default function LandingSplit({ latestHarsh, latestBright, stats }) {
                  </div>
               </div>
             ) : (
-              // VOTING BUTTONS (Bigger & Clearer)
+              // VOTING BUTTONS
               <div className="flex gap-3 h-10">
                 <button 
                   onClick={() => handleVote('grim')}
